@@ -1,0 +1,920 @@
+openapi: 3.0.3
+info:
+  title: Mini Operations ERP API
+  description: |
+    A full-stack operations ERP system for managing inventory, work orders,
+    internal stock transfers, and customer orders. Role-based access control
+    is enforced on every protected endpoint via JWT bearer tokens.
+
+    **Default credentials after seeding:**
+    | Username | Password | Role |
+    |---|---|---|
+    | admin | admin123 | admin |
+    | ops_user | ops123 | operations |
+    | sales_user | sales123 | sales |
+  version: 1.0.0
+  contact:
+    name: Mini ERP
+servers:
+  - url: http://localhost:4000/api
+    description: Local development server
+
+tags:
+  - name: Health
+    description: Server health check
+  - name: Auth
+    description: Authentication and user identity
+  - name: Inventory
+    description: Stock inventory management
+  - name: Work Orders
+    description: Production work order management
+  - name: Transfers
+    description: Internal stock transfer operations
+  - name: Customer Orders
+    description: Customer order creation and reservation
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Access denied. Required roles: admin, operations"
+
+    ValidationError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Validation failed
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              msg:
+                type: string
+              path:
+                type: string
+              location:
+                type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        role:
+          type: string
+          enum: [admin, operations, sales]
+        full_name:
+          type: string
+          nullable: true
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        user:
+          $ref: '#/components/schemas/User'
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        item:
+          type: string
+          example: Steel Rods
+        category:
+          type: string
+          example: Raw Material
+        location:
+          type: string
+          example: Warehouse A
+        batch:
+          type: string
+          example: BATCH-001
+          default: DEFAULT
+        physical_qty:
+          type: number
+          format: decimal
+          example: 500.00
+        reserved_qty:
+          type: number
+          format: decimal
+          example: 50.00
+        available_qty:
+          type: number
+          format: decimal
+          example: 450.00
+          description: "Computed: physical_qty - reserved_qty"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    WorkOrder:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        work_order_id:
+          type: string
+          example: WO-1705312200000-ABC123
+        location:
+          type: string
+          example: Warehouse A
+        item:
+          type: string
+          example: Steel Rods
+        required_qty:
+          type: number
+          format: decimal
+          example: 100.00
+        assigned_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        assigned_username:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [Assigned, "In Progress", Completed]
+        shortage_qty:
+          type: number
+          format: decimal
+          example: 0.00
+          description: "Auto-calculated at creation: max(0, required_qty - available_qty_at_location)"
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    InternalTransfer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transfer_id:
+          type: string
+          example: TRF-1705312200000-XYZ789
+        source_location:
+          type: string
+          example: Warehouse A
+        destination_location:
+          type: string
+          example: Warehouse B
+        item:
+          type: string
+          example: Steel Rods
+        qty:
+          type: number
+          format: decimal
+          example: 50.00
+        status:
+          type: string
+          enum: [Requested, Dispatched, Received]
+        work_order_id:
+          type: string
+          nullable: true
+        dispatched_at:
+          type: string
+          format: date-time
+          nullable: true
+        received_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CustomerOrder:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          example: ORD-1705312200000-DEF456
+        customer_name:
+          type: string
+          example: Acme Corp
+        item:
+          type: string
+          example: Steel Rods
+        location:
+          type: string
+          example: Warehouse A
+        qty:
+          type: number
+          format: decimal
+          example: 20.00
+        status:
+          type: string
+          enum: [Pending, Reserved, Fulfilled, Cancelled]
+        created_by_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_by_username:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Server health check
+      description: No authentication required.
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and receive JWT
+      description: Authenticates a user with username and password. Returns a signed JWT token valid for 24 hours.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  example: admin123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /inventory:
+    get:
+      tags: [Inventory]
+      summary: List all inventory items
+      description: Available to all authenticated roles.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of inventory items with computed available_qty
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryItem'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Inventory]
+      summary: Create inventory record
+      description: Requires `admin` or `operations` role. Prevents duplicate item/location/batch combinations.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [item, category, location, physical_qty]
+              properties:
+                item:
+                  type: string
+                  example: Steel Rods
+                category:
+                  type: string
+                  example: Raw Material
+                location:
+                  type: string
+                  example: Warehouse D
+                batch:
+                  type: string
+                  example: BATCH-006
+                  description: Defaults to "DEFAULT" if not provided
+                physical_qty:
+                  type: number
+                  minimum: 0
+                  example: 200
+      responses:
+        '201':
+          description: Inventory record created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '403':
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Duplicate item/location/batch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /inventory/{id}:
+    get:
+      tags: [Inventory]
+      summary: Get inventory item by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Inventory item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Inventory]
+      summary: Update inventory item
+      description: |
+        Update physical_qty, category, or location. Requires `admin` or `operations` role.
+        Uses row-level locking (`SELECT FOR UPDATE`) to prevent race conditions.
+        Cannot set physical_qty below reserved_qty.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                physical_qty:
+                  type: number
+                  minimum: 0
+                  example: 600
+                category:
+                  type: string
+                  example: Raw Material
+                location:
+                  type: string
+                  example: Warehouse A
+      responses:
+        '200':
+          description: Updated inventory item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '400':
+          description: physical_qty below reserved_qty
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Inventory]
+      summary: Delete inventory record
+      description: Requires `admin` role only.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Deleted successfully
+        '403':
+          description: Not admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /work-orders:
+    get:
+      tags: [Work Orders]
+      summary: List all work orders
+      description: Available to all authenticated roles. Ordered by creation date (newest first).
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of work orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkOrder'
+
+    post:
+      tags: [Work Orders]
+      summary: Create work order
+      description: |
+        Requires `admin` role. Automatically calculates shortage_qty:
+        `max(0, required_qty - available_qty_at_location)`.
+        A shortage > 0 signals that an internal stock transfer is needed.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [location, item, required_qty]
+              properties:
+                location:
+                  type: string
+                  example: Warehouse A
+                item:
+                  type: string
+                  example: Steel Rods
+                required_qty:
+                  type: number
+                  exclusiveMinimum: 0
+                  example: 100
+                assigned_user_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                notes:
+                  type: string
+                  nullable: true
+      responses:
+        '201':
+          description: Work order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrder'
+        '403':
+          description: Not admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /work-orders/{id}:
+    get:
+      tags: [Work Orders]
+      summary: Get work order by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Work order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrder'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /work-orders/{id}/status:
+    patch:
+      tags: [Work Orders]
+      summary: Update work order status
+      description: Requires `admin` or `operations` role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [Assigned, "In Progress", Completed]
+      responses:
+        '200':
+          description: Updated work order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrder'
+        '400':
+          description: Invalid status value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /transfers:
+    get:
+      tags: [Transfers]
+      summary: List all internal transfers
+      description: Available to all authenticated roles. Ordered by creation date (newest first).
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InternalTransfer'
+
+    post:
+      tags: [Transfers]
+      summary: Create transfer request
+      description: |
+        Requires `admin` or `operations` role. Validates that sufficient
+        available inventory exists at source (uses `SELECT FOR UPDATE`).
+        Does NOT reduce source inventory at this stage — that happens on Dispatch.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source_location, destination_location, item, qty]
+              properties:
+                source_location:
+                  type: string
+                  example: Warehouse A
+                destination_location:
+                  type: string
+                  example: Warehouse B
+                item:
+                  type: string
+                  example: Steel Rods
+                qty:
+                  type: number
+                  exclusiveMinimum: 0
+                  example: 50
+                work_order_id:
+                  type: string
+                  nullable: true
+                  example: WO-1705312200000-ABC123
+      responses:
+        '201':
+          description: Transfer created in Requested status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalTransfer'
+        '400':
+          description: Insufficient inventory at source
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /transfers/{id}/dispatch:
+    patch:
+      tags: [Transfers]
+      summary: Dispatch transfer (reduces source inventory)
+      description: |
+        Requires `admin` or `operations` role. Transfer must be in `Requested` status.
+        **Immediately reduces source location's `physical_qty`** by the transfer qty
+        within a DB transaction. Fails atomically if insufficient available qty at dispatch time.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Transfer dispatched, source inventory reduced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalTransfer'
+        '400':
+          description: Wrong status or insufficient inventory at source
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Transfer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /transfers/{id}/receive:
+    patch:
+      tags: [Transfers]
+      summary: Receive transfer (increases destination inventory)
+      description: |
+        Requires `admin` or `operations` role. Transfer must be in `Dispatched` status.
+        **Upserts destination inventory** (creates if not exists, otherwise increments physical_qty).
+        Double-receipt is prevented — attempting to receive a `Received` transfer returns 409.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Transfer received, destination inventory increased
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalTransfer'
+        '400':
+          description: Transfer not in Dispatched status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Transfer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Transfer already received (duplicate receipt prevented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /customer-orders:
+    get:
+      tags: [Customer Orders]
+      summary: List all customer orders
+      description: Available to all authenticated roles. Ordered by creation date (newest first).
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of customer orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerOrder'
+
+    post:
+      tags: [Customer Orders]
+      summary: Create customer order and reserve stock
+      description: |
+        Requires `sales` or `admin` role. Atomically reserves inventory using
+        `SELECT FOR UPDATE` to prevent concurrent over-reservation.
+        Two concurrent requests cannot both succeed if combined qty exceeds available.
+        Increments `reserved_qty` and effectively decrements `available_qty`.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer_name, item, location, qty]
+              properties:
+                customer_name:
+                  type: string
+                  example: Acme Corp
+                item:
+                  type: string
+                  example: Steel Rods
+                location:
+                  type: string
+                  example: Warehouse A
+                qty:
+                  type: number
+                  exclusiveMinimum: 0
+                  example: 20
+      responses:
+        '201':
+          description: Order created and stock reserved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerOrder'
+        '400':
+          description: Insufficient available inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not sales or admin role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No inventory at specified location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /customer-orders/{id}/cancel:
+    patch:
+      tags: [Customer Orders]
+      summary: Cancel order and release reservation
+      description: |
+        Requires `sales` or `admin` role. Order must be in `Reserved` status.
+        Releases reserved inventory back to the available pool (decrements reserved_qty).
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order cancelled, reservation released
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerOrder'
+        '400':
+          description: Order not in Reserved status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
