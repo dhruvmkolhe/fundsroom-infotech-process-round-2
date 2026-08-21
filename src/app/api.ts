@@ -1,9 +1,11 @@
 // ─── API Client ─────────────────────────────────────────────────────────────
 // All calls go through apiFetch which automatically attaches the JWT token.
-// The Vite dev server proxies /api/* to http://localhost:4000/api/* so no
-// CORS issues arise during development.
+//
+// LOCAL DEV:  BASE = '/api'  →  Vite proxy forwards to http://localhost:4000
+// PRODUCTION: Set VITE_API_URL=https://your-backend.railway.app/api in Vercel
+//             env vars so the frontend knows where the real backend lives.
 
-const BASE = '/api';
+const BASE: string = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 
 // ── Auth storage helpers ─────────────────────────────────────────────────────
 

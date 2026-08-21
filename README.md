@@ -143,7 +143,56 @@ GET http://localhost:4000/health
 npm run dev
 ```
 
-The client runs on `http://localhost:5173` (Vite default) or `http://localhost:3000` (CRA default).
+The client runs on `http://localhost:5173` (Vite default).
+
+> **Note:** The frontend dev server proxies `/api/*` to `http://localhost:4000` via Vite — make sure the backend is running first.
+
+---
+
+## Production Deployment
+
+The frontend is a static React app (deployable to Vercel/Netlify).
+The backend needs a server with a PostgreSQL database (Railway recommended).
+
+### Backend → Railway (free tier)
+
+1. Go to [railway.app](https://railway.app) → **New Project → Deploy from GitHub repo**
+2. Select this repository
+3. Railway uses `railway.json` at the root — it builds & starts the Express server automatically
+4. In Railway, click **+ Add Plugin → PostgreSQL** → Railway auto-sets `DATABASE_URL`
+5. Add these environment variables in Railway's Variables tab:
+
+   | Variable | Value |
+   |---|---|
+   | `JWT_SECRET` | any long random string |
+   | `JWT_EXPIRES_IN` | `24h` |
+   | `NODE_ENV` | `production` |
+   | `CORS_ORIGIN` | `https://fundsroom-infotech-process-round-2.vercel.app` |
+
+6. After deploy, run the schema: copy your Railway `DATABASE_URL` and run:
+   ```bash
+   psql "postgresql://..." -f server/schema.sql
+   ```
+7. Seed the database:
+   ```bash
+   cd server
+   DATABASE_URL="postgresql://..." npm run db:seed
+   ```
+8. Note your Railway backend URL, e.g. `https://mini-erp-backend.railway.app`
+
+### Frontend → Vercel
+
+1. Go to [vercel.com](https://vercel.com) → **New Project → Import GitHub repo**
+2. Vercel auto-detects Vite; build settings should be:
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+3. Add this environment variable in Vercel's Settings → Environment Variables:
+
+   | Variable | Value |
+   |---|---|
+   | `VITE_API_URL` | `https://your-railway-backend.railway.app/api` |
+
+4. Redeploy (Vercel → Deployments → Redeploy) — login will now work ✅
 
 ---
 
