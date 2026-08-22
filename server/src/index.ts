@@ -34,6 +34,21 @@ app.use(express.json());
 // Health check
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
+import path from 'path';
+import fs from 'fs';
+
+// Serve frontend static assets if dist exists
+const possibleDistPaths = [
+  path.resolve(process.cwd(), 'dist'),
+  path.resolve(__dirname, '../../dist'),
+  path.resolve(__dirname, '../dist'),
+];
+const distPath = possibleDistPaths.find(p => fs.existsSync(p)) || path.resolve(process.cwd(), 'dist');
+
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/inventory', inventoryRoutes);
@@ -41,7 +56,19 @@ app.use('/api/work-orders', workOrderRoutes);
 app.use('/api/transfers', transferRoutes);
 app.use('/api/customer-orders', customerOrderRoutes);
 
-// 404 handler
+// SPA fallback for all non-API GET requests
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  const indexPath = path.join(distPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  next();
+});
+
+// 404 handler for unmatched API routes
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
 
 // Global error handler
