@@ -1,0 +1,22 @@
+﻿name: Render Keep Alive Cron
+
+on:
+  schedule:
+    # Runs every 14 minutes (Render spins down after 15 mins of inactivity)
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend
+        run: |
+          URL="${{ secrets.RENDER_APP_URL }}"
+          if [ -z "$URL" ]; then
+            echo "No RENDER_APP_URL secret set. Pinging default health endpoint or skipping."
+            URL="https://fundsroom-infotech-process-round-2.onrender.com"
+          fi
+          echo "Pinging $URL/health ..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL/health" || true)
+          echo "Response code: $STATUS"

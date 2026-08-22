@@ -78,7 +78,20 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`Mini ERP Server running on port ${PORT}`));
+  app.listen(PORT, () => {
+    console.log(`Mini ERP Server running on port ${PORT}`);
+
+    // Keep-alive pinger for Render free-tier
+    const serverUrl = process.env.RENDER_EXTERNAL_URL || process.env.SERVER_URL;
+    if (serverUrl) {
+      console.log(`📡 Keep-alive cron enabled for ${serverUrl}/health (every 10 min)`);
+      setInterval(() => {
+        fetch(`${serverUrl}/health`)
+          .then((res) => console.log(`[Keep-Alive Ping] Status: ${res.status}`))
+          .catch((err) => console.error('[Keep-Alive Ping Error]', err.message));
+      }, 10 * 60 * 1000); // 10 minutes
+    }
+  });
 }
 
 export default app;
