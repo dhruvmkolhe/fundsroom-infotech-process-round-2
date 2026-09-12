@@ -58,8 +58,7 @@ import fs from 'fs';
 // Serve frontend static assets if dist exists
 const possibleDistPaths = [
   path.resolve(process.cwd(), 'dist'),
-  path.resolve(__dirname, '../../dist'),
-  path.resolve(__dirname, '../dist'),
+  path.resolve(process.cwd(), 'server/dist'),
 ];
 const distPath = possibleDistPaths.find(p => fs.existsSync(p)) || path.resolve(process.cwd(), 'dist');
 
@@ -88,7 +87,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error' });
 });
 
-if (require.main === module) {
+if (typeof require !== 'undefined' && require.main === module) {
   app.listen(PORT, () => {
     console.log(`Mini ERP Server running on port ${PORT}`);
 

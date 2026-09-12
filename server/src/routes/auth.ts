@@ -31,9 +31,9 @@ router.post('/login',
         { expiresIn: (process.env.JWT_EXPIRES_IN || '24h') as any }
       );
       res.json({ token, user: { id: user.id, username: user.username, role: user.role, full_name: user.full_name } });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Server error' });
+    } catch (err: any) {
+      console.error('Login error:', err);
+      res.status(500).json({ error: err.message || 'Server error' });
     }
   }
 );
@@ -50,8 +50,9 @@ router.get('/me', authenticate, async (req: Request, res: Response): Promise<voi
       return;
     }
     res.json(result.rows[0]);
-  } catch {
-    res.status(500).json({ error: 'Server error' });
+  } catch (err: any) {
+    console.error('Auth me error:', err);
+    res.status(500).json({ error: err.message || 'Server error' });
   }
 });
 
