@@ -87,7 +87,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error' });
 });
 
-if (typeof require !== 'undefined' && require.main === module) {
+if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {
   app.listen(PORT, () => {
     console.log(`Mini ERP Server running on port ${PORT}`);
 
