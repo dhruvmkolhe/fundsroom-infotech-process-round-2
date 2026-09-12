@@ -9,9 +9,18 @@
     "build:client": "vite build",
     "build:server": "npm --prefix server install && npm --prefix server run build",
     "build": "vite build && npm --prefix server install && npm --prefix server run build",
-    "start": "node server/dist/index.js"
+    "start": "node server/dist/index.js",
+    "db:setup": "npm --prefix server run db:setup"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
+    "uuid": "^9.0.0",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/icons-material": "7.3.5",
@@ -71,6 +80,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
+    "@vercel/node": "^3.2.0",
     "tailwindcss": "4.1.12",
     "vite": "6.3.5"
   },

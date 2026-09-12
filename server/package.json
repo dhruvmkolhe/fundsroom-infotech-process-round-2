@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "jest --runInBand --forceExit",
-    "db:seed": "ts-node src/seed.ts"
+    "db:seed": "ts-node src/seed.ts",
+    "db:setup": "node dist/setupDb.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

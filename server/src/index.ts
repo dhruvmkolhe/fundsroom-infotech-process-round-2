@@ -16,8 +16,41 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
-// Health check
-app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+// Create API Router for full Vercel Serverless and Express compatibility
+const apiRouter = express.Router();
+
+// Health check with database connectivity probe
+apiRouter.get('/health', async (_req, res) => {
+  let dbStatus = 'disconnected';
+  if (process.env.DATABASE_URL) {
+    try {
+      const pool = (await import('./db')).default;
+      await pool.query('SELECT 1');
+      dbStatus = 'connected';
+    } catch (e: any) {
+      dbStatus = `error: ${e.message}`;
+    }
+  } else {
+    dbStatus = 'DATABASE_URL not configured';
+  }
+
+  res.json({
+    status: 'ok',
+    database: dbStatus,
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/inventory', inventoryRoutes);
+apiRouter.use('/work-orders', workOrderRoutes);
+apiRouter.use('/transfers', transferRoutes);
+apiRouter.use('/customer-orders', customerOrderRoutes);
+
+// Mount router under both /api and root so rewrites without prefix stripping both work
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
 
 import path from 'path';
 import fs from 'fs';
@@ -33,13 +66,6 @@ const distPath = possibleDistPaths.find(p => fs.existsSync(p)) || path.resolve(p
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
 }
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/inventory', inventoryRoutes);
-app.use('/api/work-orders', workOrderRoutes);
-app.use('/api/transfers', transferRoutes);
-app.use('/api/customer-orders', customerOrderRoutes);
 
 // SPA fallback for all non-API GET requests
 app.get('*', (req, res, next) => {

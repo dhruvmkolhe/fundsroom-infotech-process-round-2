@@ -385,3 +385,57 @@ Key business rules:
         ├── inventory.test.ts   # Inventory + auth tests (Tests 1, 5, 5b)
         └── transfers.test.ts   # Transfer lifecycle tests (Tests 2, 3, 4)
 ```
+
+---
+
+## Deploying Fully on Vercel
+
+This repository is configured to deploy both the **React Frontend** and **Express Backend** directly on Vercel in a single unified deployment using Vercel Serverless Functions (`api/index.ts`).
+
+### Step 1: Provision a Free PostgreSQL Database
+Because Vercel is a serverless platform, it requires a cloud PostgreSQL database. You can provision a free database in under a minute with:
+- **[Neon](https://neon.tech)** (Recommended — instant setup, serverless Postgres)
+- **[Supabase](https://supabase.com)**
+- **[Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres)**
+
+Copy your PostgreSQL connection string (e.g., `postgres://user:pass@ep-xyz.neon.tech/neondb?sslmode=require`).
+
+### Step 2: Initialize Database Schema & Seed Data
+Run the automated setup command pointing to your remote database:
+
+```bash
+DATABASE_URL="your-database-connection-string" npm run db:setup
+```
+
+This runs `schema.sql` (tables, triggers, indexes) and populates initial sample users and inventory.
+
+### Step 3: Deploy to Vercel
+
+#### Option A: Via GitHub (Recommended)
+1. Push this repository to GitHub:
+   ```bash
+   git add .
+   git commit -m "Configure full-stack deployment on Vercel"
+   git push origin master
+   ```
+2. Go to [vercel.com](https://vercel.com) and click **"Add New Project"** → Import your repository.
+3. In **Project Settings** → **Environment Variables**, add:
+   - `DATABASE_URL`: `your-database-connection-string`
+   - `JWT_SECRET`: `a-strong-random-secret-key`
+4. Click **Deploy**.
+
+#### Option B: Via Vercel CLI
+```bash
+npx vercel login
+npx vercel
+# Follow prompts, then add environment variables:
+npx vercel env add DATABASE_URL
+npx vercel env add JWT_SECRET
+npx vercel --prod
+```
+
+### Verification
+Once deployed, visit your deployment URL:
+- `https://your-project.vercel.app/` — Loads the React ERP dashboard
+- `https://your-project.vercel.app/api/health` — Probes backend and database connectivity status
+
