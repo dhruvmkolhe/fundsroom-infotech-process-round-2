@@ -56,7 +56,7 @@ async function apiFetch<T>(
 
 // ── Types (mirrored from server/src/types.ts) ────────────────────────────────
 
-export type UserRole = 'admin' | 'operations' | 'sales';
+export type UserRole = 'admin' | 'operations' | 'sales' | 'customer';
 
 export interface ApiUser {
   id: string;

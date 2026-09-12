@@ -17,8 +17,8 @@ router.get('/', authenticate, async (_req: Request, res: Response): Promise<void
   }
 });
 
-// POST /customer-orders - sales creates reservation, uses SELECT FOR UPDATE for concurrency
-router.post('/', authenticate, authorize('sales', 'admin'),
+// POST /customer-orders - sales, admin, or customer creates reservation
+router.post('/', authenticate, authorize('sales', 'admin', 'customer'),
   body('customer_name').trim().notEmpty(),
   body('item').trim().notEmpty(),
   body('location').trim().notEmpty(),

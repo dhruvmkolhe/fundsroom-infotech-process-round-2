@@ -493,7 +493,7 @@ const NAV_ITEMS = [
   { id: "inventory", label: "Inventory", icon: Package, roles: ["admin", "operations", "sales"] as UserRole[] },
   { id: "workorders", label: "Work Orders", icon: ClipboardList, roles: ["admin", "operations"] as UserRole[] },
   { id: "transfers", label: "Stock Transfers", icon: ArrowLeftRight, roles: ["admin", "operations"] as UserRole[] },
-  { id: "customerorders", label: "Customer Orders", icon: ShoppingCart, roles: ["admin", "sales"] as UserRole[] },
+  { id: "customerorders", label: "Customer Orders", icon: ShoppingCart, roles: ["admin", "sales", "customer"] as UserRole[] },
 ];
 
 function Sidebar({ active, onNav }: { active: string; onNav: (id: string) => void }) {
@@ -603,13 +603,29 @@ function LoginPage() {
           </form>
 
           <div className="mt-5 pt-5 border-t border-slate-100">
-            <p className="text-xs text-slate-500 font-medium mb-2">Demo credentials:</p>
-            <div className="space-y-1.5">
-              {[["admin", "admin123", "Admin"], ["ops_user", "ops123", "Operations"], ["sales_user", "sales123", "Sales"]].map(([u, p, label]) => (
+            <p className="text-xs text-slate-500 font-medium mb-2">Demo credentials (click to autofill):</p>
+            <div className="grid grid-cols-1 gap-1.5 max-h-52 overflow-y-auto pr-1">
+              {[
+                ["admin", "admin123", "ADMIN", "System Administrator"],
+                ["ops_user", "ops123", "OPERATIONS", "Operations Manager"],
+                ["ops_lead", "ops123", "OPERATIONS", "Warehouse Lead"],
+                ["sales_user", "sales123", "SALES", "Sales Representative"],
+                ["sales_lead", "sales123", "SALES", "Senior Account Exec"],
+                ["customer_user", "customer123", "CUSTOMER", "Apex Manufacturing Client"],
+                ["client_titan", "customer123", "CUSTOMER", "Titan Industries Client"],
+              ].map(([u, p, badge, title]) => (
                 <button key={u} onClick={() => fill(u, p)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded border border-slate-200 transition-colors text-left">
-                  <span className="text-xs text-slate-600 font-mono">{u}</span>
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider">{label}</span>
+                  className="w-full flex items-center justify-between px-3 py-1.5 bg-slate-50 hover:bg-blue-50/50 hover:border-blue-200 rounded border border-slate-200 transition-all text-left group">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-mono font-medium text-slate-700 group-hover:text-blue-600">{u}</span>
+                    <span className="text-[10px] text-slate-400">{title}</span>
+                  </div>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider ${
+                    badge === 'ADMIN' ? 'bg-purple-100 text-purple-700' :
+                    badge === 'OPERATIONS' ? 'bg-amber-100 text-amber-700' :
+                    badge === 'SALES' ? 'bg-blue-100 text-blue-700' :
+                    'bg-emerald-100 text-emerald-700'
+                  }`}>{badge}</span>
                 </button>
               ))}
             </div>
@@ -1303,7 +1319,7 @@ function StatsBar() {
 
 function AppShell() {
   const { user } = useContext(AuthContext);
-  const [page, setPage] = useState<string>(() => user?.role === "sales" ? "customerorders" : "inventory");
+  const [page, setPage] = useState<string>(() => (user?.role === "sales" || user?.role === "customer") ? "customerorders" : "inventory");
 
   if (!user) return <LoginPage />;
 
@@ -1318,10 +1334,10 @@ function AppShell() {
     inventory: ["admin", "operations", "sales"],
     workorders: ["admin", "operations"],
     transfers: ["admin", "operations"],
-    customerorders: ["admin", "sales"],
+    customerorders: ["admin", "sales", "customer"],
   };
 
-  const activePage = canAccess[page]?.includes(user.role) ? page : (user.role === "sales" ? "customerorders" : "inventory");
+  const activePage = canAccess[page]?.includes(user.role) ? page : ((user.role === "sales" || user.role === "customer") ? "customerorders" : "inventory");
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden font-[Inter,system-ui,sans-serif]">

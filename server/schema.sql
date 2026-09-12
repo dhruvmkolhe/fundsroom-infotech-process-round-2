@@ -6,10 +6,19 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username VARCHAR(50) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'operations', 'sales')),
+  role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'operations', 'sales', 'customer')),
   full_name VARCHAR(100),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Ensure customer role is permitted even if table already exists
+DO $$
+BEGIN
+  ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+  ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'operations', 'sales', 'customer'));
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
 
 -- Inventory table with computed available_qty
 CREATE TABLE IF NOT EXISTS inventory (

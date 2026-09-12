@@ -551,7 +551,7 @@ router5.get("/", authenticate, async (_req, res) => {
 router5.post(
   "/",
   authenticate,
-  authorize("sales", "admin"),
+  authorize("sales", "admin", "customer"),
   body5("customer_name").trim().notEmpty(),
   body5("item").trim().notEmpty(),
   body5("location").trim().notEmpty(),
