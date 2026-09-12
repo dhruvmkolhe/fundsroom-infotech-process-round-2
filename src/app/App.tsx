@@ -506,7 +506,7 @@ function Sidebar({ active, onNav }: { active: string; onNav: (id: string) => voi
   const badges: Record<string, number> = { workorders: shortages, transfers: pendingTransfers };
 
   return (
-    <aside className="w-56 h-screen bg-[#0f172a] flex flex-col shrink-0">
+    <aside aria-label="Sidebar navigation" className="w-56 h-screen bg-[#0f172a] flex flex-col shrink-0">
       <div className="px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
@@ -519,7 +519,7 @@ function Sidebar({ active, onNav }: { active: string; onNav: (id: string) => voi
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+      <nav aria-label="Modules navigation" className="flex-1 px-3 py-4 overflow-y-auto">
         <p className="text-slate-500 text-[10px] font-semibold uppercase tracking-widest px-2 mb-2">Modules</p>
         {NAV_ITEMS.filter(item => user && item.roles.includes(user.role)).map(item => (
           <button key={item.id} onClick={() => onNav(item.id)}
@@ -578,7 +578,7 @@ function LoginPage() {
   const fill = (u: string, p: string) => { setUsername(u); setPassword(p); };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+    <main aria-label="Sign In" className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg">
@@ -632,7 +632,7 @@ function LoginPage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -1299,7 +1299,7 @@ function StatsBar() {
   const activeOrders = data.customerOrders.filter(o => o.status === "Reserved").length;
 
   return (
-    <div className="grid grid-cols-5 gap-0 border-b border-slate-200 bg-white">
+    <header aria-label="System Metrics" className="grid grid-cols-5 gap-0 border-b border-slate-200 bg-white">
       {[
         { label: "Inventory Records", value: totalItems, icon: Package, color: "text-blue-600" },
         { label: "Low Stock Alerts", value: lowStock, icon: AlertTriangle, color: lowStock > 0 ? "text-amber-600" : "text-slate-400" },
@@ -1315,15 +1315,60 @@ function StatsBar() {
           </div>
         </div>
       ))}
+    </header>
+  );
+}
+
+// ─── 404 Not Found Page ────────────────────────────────────────────────────────
+
+function NotFoundPage({ onNavigate }: { onNavigate: (page: string) => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[70vh] p-8 text-center" role="region" aria-label="404 Page Not Found">
+      <div className="w-16 h-16 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center mb-4 text-rose-600 shadow-sm">
+        <AlertTriangle className="w-8 h-8" />
+      </div>
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-rose-100 text-rose-700 border border-rose-200 mb-3">
+        ERROR 404
+      </span>
+      <h1 className="text-2xl font-bold text-slate-800 mb-2">Page Not Found</h1>
+      <p className="text-sm text-slate-500 max-w-md mb-6 leading-relaxed">
+        The requested ERP view or operations resource does not exist or has been relocated.
+      </p>
+      <div className="flex items-center gap-3">
+        <Btn variant="primary" onClick={() => onNavigate("inventory")}>
+          <Package className="w-4 h-4" />
+          Return to Inventory
+        </Btn>
+        <Btn variant="outline" onClick={() => onNavigate("customerorders")}>
+          <ShoppingCart className="w-4 h-4" />
+          Customer Orders
+        </Btn>
+      </div>
     </div>
   );
 }
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
 
+function parsePathToPage(): string | null {
+  if (typeof window === "undefined") return null;
+  const path = window.location.pathname.toLowerCase().replace(/^\/|\/$/g, "");
+  if (!path || path === "index.html") return null;
+  if (path === "inventory") return "inventory";
+  if (path === "workorders" || path === "work-orders") return "workorders";
+  if (path === "transfers" || path === "stock-transfers") return "transfers";
+  if (path === "customerorders" || path === "customer-orders") return "customerorders";
+  return "notfound";
+}
+
 function AppShell() {
   const { user } = useContext(AuthContext);
-  const [page, setPage] = useState<string>(() => (user?.role === "sales" || user?.role === "customer") ? "customerorders" : "inventory");
+  const [page, setPage] = useState<string>(() => {
+    const fromPath = parsePathToPage();
+    if (fromPath === "notfound") return "notfound";
+    if (fromPath) return fromPath;
+    return (user?.role === "sales" || user?.role === "customer") ? "customerorders" : "inventory";
+  });
 
   if (!user) return <LoginPage />;
 
@@ -1332,6 +1377,7 @@ function AppShell() {
     workorders: <WorkOrdersPage />,
     transfers: <TransfersPage />,
     customerorders: <CustomerOrdersPage />,
+    notfound: <NotFoundPage onNavigate={setPage} />,
   };
 
   const canAccess: Record<string, UserRole[]> = {
@@ -1339,18 +1385,19 @@ function AppShell() {
     workorders: ["admin", "operations"],
     transfers: ["admin", "operations"],
     customerorders: ["admin", "sales", "customer"],
+    notfound: ["admin", "operations", "sales", "customer"],
   };
 
-  const activePage = canAccess[page]?.includes(user.role) ? page : ((user.role === "sales" || user.role === "customer") ? "customerorders" : "inventory");
+  const activePage = page === "notfound" ? "notfound" : (canAccess[page]?.includes(user.role) ? page : ((user.role === "sales" || user.role === "customer") ? "customerorders" : "inventory"));
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden font-[Inter,system-ui,sans-serif]">
       <Sidebar active={activePage} onNav={setPage} />
       <div className="flex flex-col flex-1 overflow-hidden">
         <StatsBar />
-        <div className="flex-1 overflow-auto">
-          {pages[activePage]}
-        </div>
+        <main id="main-content" tabIndex={-1} aria-label="Operations Dashboard" className="flex-1 overflow-auto">
+          {pages[activePage] || <NotFoundPage onNavigate={setPage} />}
+        </main>
       </div>
     </div>
   );
