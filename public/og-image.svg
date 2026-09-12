@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <path d="M0 100 H1200 M0 200 H1200 M0 300 H1200 M0 400 H1200 M0 500 H1200" stroke="#334155" stroke-opacity="0.2" stroke-width="1"/>
+  <path d="M200 0 V630 M400 0 V630 M600 0 V630 M800 0 V630 M1000 0 V630" stroke="#334155" stroke-opacity="0.2" stroke-width="1"/>
+
+  <!-- Logo container -->
+  <rect x="100" y="100" width="80" height="80" rx="20" fill="url(#brandGrad)"/>
+  <path d="M140 118L162 131V157L140 170L118 157V131L140 118Z" stroke="#ffffff" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M140 144V170" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M162 131L140 144L118 131" stroke="#ffffff" stroke-width="4.5" stroke-linejoin="round"/>
+
+  <!-- Brand Title -->
+  <text x="204" y="156" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="44" font-weight="800" letter-spacing="-1">MiniOps ERP</text>
+
+  <!-- Category Badge -->
+  <rect x="100" y="230" width="230" height="36" rx="18" fill="#1e3a8a" fill-opacity="0.4" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="120" y="254" fill="#93c5fd" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" letter-spacing="0.5">OPERATIONS PLATFORM</text>
+
+  <!-- Main Headline -->
+  <text x="100" y="330" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="800" letter-spacing="-1.5">
+    Intelligent ERP &amp; Fulfillment
+  </text>
+  <text x="100" y="390" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="400">
+    Multi-warehouse inventory, automated shortage detection &amp; real-time order tracking.
+  </text>
+
+  <!-- Feature Tags -->
+  <g transform="translate(100, 460)">
+    <!-- Tag 1 -->
+    <rect x="0" y="0" width="220" height="46" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="24" y="29" fill="#e2e8f0" font-family="sans-serif" font-size="16" font-weight="600">📦 Inventory Control</text>
+
+    <!-- Tag 2 -->
+    <rect x="240" y="0" width="210" height="46" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="264" y="29" fill="#e2e8f0" font-family="sans-serif" font-size="16" font-weight="600">⚡ Work Orders</text>
+
+    <!-- Tag 3 -->
+    <rect x="470" y="0" width="220" height="46" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="494" y="29" fill="#e2e8f0" font-family="sans-serif" font-size="16" font-weight="600">🔄 Stock Transfers</text>
+
+    <!-- Tag 4 -->
+    <rect x="710" y="0" width="230" height="46" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="734" y="29" fill="#e2e8f0" font-family="sans-serif" font-size="16" font-weight="600">🛒 Order Fulfillment</text>
+  </g>
+</svg>

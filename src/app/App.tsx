@@ -3,7 +3,7 @@ import {
   Package, ClipboardList, ArrowLeftRight, ShoppingCart, LogOut,
   Plus, Edit2, Trash2, CheckCircle, Clock, AlertTriangle, XCircle,
   ChevronRight, RefreshCw, TrendingDown, Search, X, Eye, Truck,
-  ArrowRight, BarChart2, Users, Warehouse, AlertCircle, Filter
+  ArrowRight, BarChart2, Users, Warehouse, AlertCircle, Filter, Menu
 } from "lucide-react";
 import {
   getToken, setToken, clearToken,
@@ -496,7 +496,7 @@ const NAV_ITEMS = [
   { id: "customerorders", label: "Customer Orders", icon: ShoppingCart, roles: ["admin", "sales", "customer"] as UserRole[] },
 ];
 
-function Sidebar({ active, onNav }: { active: string; onNav: (id: string) => void }) {
+function SidebarContent({ active, onNav, onClose }: { active: string; onNav: (id: string) => void; onClose?: () => void }) {
   const { user, logout } = useContext(AuthContext);
   const { data } = useContext(DataContext);
 
@@ -506,8 +506,8 @@ function Sidebar({ active, onNav }: { active: string; onNav: (id: string) => voi
   const badges: Record<string, number> = { workorders: shortages, transfers: pendingTransfers };
 
   return (
-    <aside aria-label="Sidebar navigation" className="w-56 h-screen bg-[#0f172a] flex flex-col shrink-0">
-      <div className="px-5 py-5 border-b border-white/10">
+    <div className="flex flex-col h-full bg-[#0f172a]">
+      <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
             <Warehouse className="w-4 h-4 text-white" />
@@ -517,12 +517,21 @@ function Sidebar({ active, onNav }: { active: string; onNav: (id: string) => voi
             <p className="text-slate-400 text-xs">Operations Suite</p>
           </div>
         </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            aria-label="Close mobile navigation menu"
+            className="md:hidden text-slate-400 hover:text-white p-1 rounded-md hover:bg-white/5 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       <nav aria-label="Modules navigation" className="flex-1 px-3 py-4 overflow-y-auto">
         <p className="text-slate-500 text-[10px] font-semibold uppercase tracking-widest px-2 mb-2">Modules</p>
         {NAV_ITEMS.filter(item => user && item.roles.includes(user.role)).map(item => (
-          <button key={item.id} onClick={() => onNav(item.id)}
+          <button key={item.id} onClick={() => { onNav(item.id); if (onClose) onClose(); }}
             className={cn("w-full flex items-center justify-between px-3 py-2 rounded-md mb-0.5 group transition-colors",
               active === item.id ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white")}>
             <span className="flex items-center gap-2.5 text-sm font-medium">
@@ -553,6 +562,14 @@ function Sidebar({ active, onNav }: { active: string; onNav: (id: string) => voi
           <LogOut className="w-3.5 h-3.5" /><span>Sign Out</span>
         </button>
       </div>
+    </div>
+  );
+}
+
+function Sidebar({ active, onNav }: { active: string; onNav: (id: string) => void }) {
+  return (
+    <aside aria-label="Sidebar navigation" className="hidden md:flex w-56 h-screen bg-[#0f172a] flex-col shrink-0">
+      <SidebarContent active={active} onNav={onNav} />
     </aside>
   );
 }
@@ -565,6 +582,10 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    document.title = "Sign In | MiniOps ERP";
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1299,7 +1320,7 @@ function StatsBar() {
   const activeOrders = data.customerOrders.filter(o => o.status === "Reserved").length;
 
   return (
-    <header aria-label="System Metrics" className="grid grid-cols-5 gap-0 border-b border-slate-200 bg-white">
+    <header aria-label="System Metrics" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-0 border-b border-slate-200 bg-white">
       {[
         { label: "Inventory Records", value: totalItems, icon: Package, color: "text-blue-600" },
         { label: "Low Stock Alerts", value: lowStock, icon: AlertTriangle, color: lowStock > 0 ? "text-amber-600" : "text-slate-400" },
@@ -1307,7 +1328,7 @@ function StatsBar() {
         { label: "Pending Transfers", value: pendingTransfers, icon: ArrowLeftRight, color: "text-orange-600" },
         { label: "Reserved Orders", value: activeOrders, icon: ShoppingCart, color: "text-emerald-600" },
       ].map((stat, i) => (
-        <div key={i} className={cn("flex items-center gap-3 px-5 py-3", i < 4 && "border-r border-slate-200")}>
+        <div key={i} className="flex items-center gap-3 px-4 sm:px-5 py-3 border-r border-b md:border-b-0 border-slate-200">
           <stat.icon className={cn("w-5 h-5 shrink-0", stat.color)} />
           <div>
             <p className="text-lg font-bold text-slate-800 font-mono leading-none">{stat.value}</p>
@@ -1363,14 +1384,13 @@ function parsePathToPage(): string | null {
 
 function AppShell() {
   const { user } = useContext(AuthContext);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [page, setPage] = useState<string>(() => {
     const fromPath = parsePathToPage();
     if (fromPath === "notfound") return "notfound";
     if (fromPath) return fromPath;
     return (user?.role === "sales" || user?.role === "customer") ? "customerorders" : "inventory";
   });
-
-  if (!user) return <LoginPage />;
 
   const pages: Record<string, React.ReactNode> = {
     inventory: <InventoryPage />,
@@ -1388,12 +1408,69 @@ function AppShell() {
     notfound: ["admin", "operations", "sales", "customer"],
   };
 
-  const activePage = page === "notfound" ? "notfound" : (canAccess[page]?.includes(user.role) ? page : ((user.role === "sales" || user.role === "customer") ? "customerorders" : "inventory"));
+  const activePage = page === "notfound" ? "notfound" : (canAccess[page]?.includes(user?.role || "sales") ? page : ((user?.role === "sales" || user?.role === "customer") ? "customerorders" : "inventory"));
+
+  useEffect(() => {
+    const titleMap: Record<string, string> = {
+      inventory: "Inventory Management | MiniOps ERP",
+      workorders: "Work Orders & Shortages | MiniOps ERP",
+      transfers: "Stock Transfers | MiniOps ERP",
+      customerorders: "Customer Orders & Fulfillment | MiniOps ERP",
+      notfound: "404 Page Not Found | MiniOps ERP",
+    };
+    document.title = titleMap[activePage] || "Mini Operations ERP System";
+  }, [activePage]);
+
+  if (!user) return <LoginPage />;
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden font-[Inter,system-ui,sans-serif]">
+      {/* Desktop Sidebar */}
       <Sidebar active={activePage} onNav={setPage} />
+
+      {/* Mobile Drawer Backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs transition-opacity"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile Slide-Over Drawer */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 w-64 bg-[#0f172a] shadow-2xl md:hidden transition-transform duration-200 ease-in-out",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile Navigation Menu"
+      >
+        <SidebarContent active={activePage} onNav={setPage} onClose={() => setMobileOpen(false)} />
+      </aside>
+
       <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Mobile Top Header */}
+        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-[#0f172a] text-white border-b border-white/10 shrink-0" aria-label="Mobile Header">
+          <button
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open mobile navigation menu"
+            className="p-1.5 -ml-1 text-slate-300 hover:text-white rounded-md hover:bg-white/10 transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center">
+              <Warehouse className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="font-semibold text-sm">MiniOps ERP</span>
+          </div>
+          <span className="text-xs text-slate-400 font-mono capitalize px-2 py-0.5 rounded bg-white/5 border border-white/10">
+            {activePage}
+          </span>
+        </header>
+
         <StatsBar />
         <main id="main-content" tabIndex={-1} aria-label="Operations Dashboard" className="flex-1 overflow-auto">
           {pages[activePage] || <NotFoundPage onNavigate={setPage} />}
