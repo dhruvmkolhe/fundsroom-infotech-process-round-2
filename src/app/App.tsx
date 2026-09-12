@@ -710,9 +710,13 @@ function InventoryPage() {
             ) : filtered.map(item => (
               <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                 <Td><span className="font-medium text-slate-800">{item.item}</span></Td>
-                <Td><span className="text-xs text-slate-500">{item.category}</span></Td>
-                <Td><span className="font-mono text-xs">{item.location}</span></Td>
-                <Td mono>{item.batch}</Td>
+                <Td><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">{item.category}</span></Td>
+                <Td><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-blue-50 text-blue-700 border border-blue-100">{item.location}</span></Td>
+                <Td>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+                    {item.batch}
+                  </span>
+                </Td>
                 <Td right><span className="font-mono">{item.physical_qty.toLocaleString()}</span></Td>
                 <Td right><span className={cn("font-mono", item.reserved_qty > 0 ? "text-amber-600" : "text-slate-400")}>{item.reserved_qty.toLocaleString()}</span></Td>
                 <Td right>
@@ -870,9 +874,9 @@ function WorkOrdersPage() {
               <tr><td colSpan={8}><EmptyState message="No work orders found" /></td></tr>
             ) : filtered.map(wo => (
               <tr key={wo.id} className="hover:bg-slate-50/80 transition-colors">
-                <Td><span className="font-mono text-xs font-semibold text-blue-700">{wo.work_order_id}</span></Td>
+                <Td><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">{wo.work_order_id}</span></Td>
                 <Td><span className="font-medium">{wo.item}</span></Td>
-                <Td mono>{wo.location}</Td>
+                <Td><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">{wo.location}</span></Td>
                 <Td right><span className="font-mono">{wo.required_qty}</span></Td>
                 <Td mono>{wo.assigned_username || "—"}</Td>
                 <Td right>
@@ -1079,13 +1083,13 @@ function TransfersPage() {
               <tr><td colSpan={8}><EmptyState message="No transfers found" /></td></tr>
             ) : filtered.map(t => (
               <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
-                <Td><span className="font-mono text-xs font-semibold text-blue-700">{t.transfer_id}</span></Td>
+                <Td><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-purple-50 text-purple-700 border border-purple-200">{t.transfer_id}</span></Td>
                 <Td><span className="font-medium">{t.item}</span></Td>
-                <Td><span className="font-mono text-xs text-slate-600">{t.source_location}</span></Td>
+                <Td><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">{t.source_location}</span></Td>
                 <Td>
                   <span className="flex items-center gap-1 text-xs">
                     <ArrowRight className="w-3 h-3 text-slate-400" />
-                    <span className="font-mono text-slate-600">{t.destination_location}</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">{t.destination_location}</span>
                   </span>
                 </Td>
                 <Td right><span className="font-mono font-semibold">{t.qty}</span></Td>
@@ -1209,10 +1213,10 @@ function CustomerOrdersPage() {
               <tr><td colSpan={8}><EmptyState message="No customer orders found" /></td></tr>
             ) : filtered.map(co => (
               <tr key={co.id} className="hover:bg-slate-50/80 transition-colors">
-                <Td><span className="font-mono text-xs font-semibold text-blue-700">{co.order_id}</span></Td>
+                <Td><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">{co.order_id}</span></Td>
                 <Td><span className="font-medium">{co.customer_name}</span></Td>
                 <Td>{co.item}</Td>
-                <Td mono>{co.location}</Td>
+                <Td><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">{co.location}</span></Td>
                 <Td right><span className="font-mono font-semibold">{co.qty}</span></Td>
                 <Td><Badge status={co.status} /></Td>
                 <Td mono>{co.created_by}</Td>
